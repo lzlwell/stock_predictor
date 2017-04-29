@@ -38,12 +38,13 @@ def predict_dpi(x, centers, lnorm):
 	return num / (den + 1.0e-5)
 
 def linear_regression_vars(price, s1, s2, s3, s4, s5, s6, time_window):
-	print "check", len(s1), len(s2), len(s3), len(s4), len(s5), len(s6)
+	print("check", len(s1), len(s2), len(s3), len(s4), len(s5), len(s6))
 	maxlen = np.max(np.array([len(s1[0])-1, len(s2[0])-1, len(s3[0])-1]))
 
 	X = np.zeros((len(price) - maxlen - time_window, 6), dtype=float)
 	Y = np.zeros(len(price) - maxlen - time_window, dtype=float)
 
+        # TODO, parallal
 	for i in range(maxlen, len(price) - time_window):
 		dp = price[i + time_window] - price[i]
 
@@ -74,7 +75,7 @@ def predict_dps(price, s1, s2, s3, s4, s5, s6, w, time_window):
 	pprice = np.zeros(len(price))
 	w0, w1, w2, w3, w4, w5, w6 = w
 	for i in range(maxlen, len(price) - time_window):
-		print "in predict_dps", i
+		print("in predict_dps", i)
 		dp1 = predict_dpi(price[i - len(s1[0]) + 1:i], s1, lnorm=1)
 		dp2 = predict_dpi(price[i - len(s2[0]) + 1:i], s2, lnorm=1)
 		dp3 = predict_dpi(price[i - len(s3[0]) + 1:i], s3, lnorm=1)

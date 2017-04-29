@@ -104,7 +104,7 @@ def main():
     plt.show()
     print('Start Asset: %f' % all_asset[0])
     print('Final Asset: %f' % all_asset[-1])
-    print "Weights", w
+    print("Weights", w)
 
 
 if __name__ == '__main__':
