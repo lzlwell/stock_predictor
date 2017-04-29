@@ -38,23 +38,22 @@ def predict_dpi(x, centers, lnorm):
 	return num / (den + 1.0e-5)
 
 def linear_regression_vars(price, s1, s2, s3, s4, s5, s6, time_window):
-	print("check", len(s1), len(s2), len(s3), len(s4), len(s5), len(s6))
+	print "check", len(s1), len(s2), len(s3), len(s4), len(s5), len(s6)
 	maxlen = np.max(np.array([len(s1[0])-1, len(s2[0])-1, len(s3[0])-1]))
 
 	X = np.zeros((len(price) - maxlen - time_window, 6), dtype=float)
 	Y = np.zeros(len(price) - maxlen - time_window, dtype=float)
 
-        # TODO, parallal
 	for i in range(maxlen, len(price) - time_window):
 		dp = price[i + time_window] - price[i]
 
-		dp1 = predict_dpi(price[i - len(s1[0]) + 1:i], s1, lnorm=1)
-		dp2 = predict_dpi(price[i - len(s2[0]) + 1:i], s2, lnorm=1)
-		dp3 = predict_dpi(price[i - len(s3[0]) + 1:i], s3, lnorm=1)
+		dp1 = predict_dpi(price[i - len(s1[0]) + 1:i], s1, lnorm=2)
+		dp2 = predict_dpi(price[i - len(s2[0]) + 1:i], s2, lnorm=2)
+		dp3 = predict_dpi(price[i - len(s3[0]) + 1:i], s3, lnorm=2)
 
-		dp4 = predict_dpi(price[i - len(s4[0]) + 1:i], s4, lnorm=1)
-		dp5 = predict_dpi(price[i - len(s5[0]) + 1:i], s5, lnorm=1)
-		dp6 = predict_dpi(price[i - len(s6[0]) + 1:i], s6, lnorm=1)
+		dp4 = predict_dpi(price[i - len(s4[0]) + 1:i], s4, lnorm=2)
+		dp5 = predict_dpi(price[i - len(s5[0]) + 1:i], s5, lnorm=2)
+		dp6 = predict_dpi(price[i - len(s6[0]) + 1:i], s6, lnorm=2)
 
 		X[i - maxlen, :] = [dp1, dp2, dp3, dp4, dp5, dp6]
 		Y[i - maxlen] = dp
@@ -75,18 +74,18 @@ def predict_dps(price, s1, s2, s3, s4, s5, s6, w, time_window):
 	pprice = np.zeros(len(price))
 	w0, w1, w2, w3, w4, w5, w6 = w
 	for i in range(maxlen, len(price) - time_window):
-		print("in predict_dps", i)
-		dp1 = predict_dpi(price[i - len(s1[0]) + 1:i], s1, lnorm=1)
-		dp2 = predict_dpi(price[i - len(s2[0]) + 1:i], s2, lnorm=1)
-		dp3 = predict_dpi(price[i - len(s3[0]) + 1:i], s3, lnorm=1)
+		print "in predict_dps", i
+		dp1 = predict_dpi(price[i - len(s1[0]) + 1:i], s1, lnorm=2)
+		dp2 = predict_dpi(price[i - len(s2[0]) + 1:i], s2, lnorm=2)
+		dp3 = predict_dpi(price[i - len(s3[0]) + 1:i], s3, lnorm=2)
 
-		dp4 = predict_dpi(price[i - len(s4[0]) + 1:i], s4, lnorm=1)
-		dp5 = predict_dpi(price[i - len(s5[0]) + 1:i], s5, lnorm=1)
-		dp6 = predict_dpi(price[i - len(s6[0]) + 1:i], s6, lnorm=1)
+		dp4 = predict_dpi(price[i - len(s4[0]) + 1:i], s4, lnorm=2)
+		dp5 = predict_dpi(price[i - len(s5[0]) + 1:i], s5, lnorm=2)
+		dp6 = predict_dpi(price[i - len(s6[0]) + 1:i], s6, lnorm=2)
 
 
 		dp = w0 + w1 * dp1 + w2 * dp2 + w3 * dp3 + w4 * dp4 + w5 * dp5 + w6 * dp6
-		dp *= 5.0
+		dp *= 1.0
 		dps.append(float(dp))
 		pprice[i + time_window] = float(dp) + price[i]
 

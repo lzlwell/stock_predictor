@@ -26,20 +26,23 @@ def main():
 
 	# Divide prices into two, roughly equal sized, periods:
 
-    price = price_init[:npts-500]
-    price2 = price2_init[:npts-500]
+    price = price_init[:npts-nval]
+    price2 = price2_init[:npts-nval]
 
-    price_val = price_init[npts-500-ts3len:]
+    price_val = price_init[npts-nval-ts3len:]
     #price_val = price_init
 
+    len1 = len(price)
+    len2 = len(price2)
+
     # For AAPL
-    ts1 = generate_timeseries(price, ts1len, time_window)
-    ts2 = generate_timeseries(price, ts2len, time_window)
-    ts3 = generate_timeseries(price, ts3len, time_window)
+    ts1 = generate_timeseries(price[:len1/2], ts1len, time_window)
+    ts2 = generate_timeseries(price[:len1/2], ts2len, time_window)
+    ts3 = generate_timeseries(price[:len1/2], ts3len, time_window)
     # For GOOG
-    ts4 = generate_timeseries(price2, ts1len, time_window)
-    ts5 = generate_timeseries(price2, ts2len, time_window)
-    ts6 = generate_timeseries(price2, ts3len, time_window)
+    ts4 = generate_timeseries(price2[:len2/2], ts1len, time_window)
+    ts5 = generate_timeseries(price2[:len2/2], ts2len, time_window)
+    ts6 = generate_timeseries(price2[:len2/2], ts3len, time_window)
 
     print("Generation of timeseries done.")
 
@@ -68,7 +71,7 @@ def main():
 #    exit(0)
 
 
-    Dpi_r, Dp = linear_regression_vars(price, s1, s2, s3, s4, s5, s6, time_window)
+    Dpi_r, Dp = linear_regression_vars(price[len1/2:], s1, s2, s3, s4, s5, s6, time_window)
     print("Bayesian regression done.")
 
     w = find_w_linear_regression(Dpi_r, Dp)
@@ -97,21 +100,22 @@ def main():
 #    print("Final Balance:", bank_balance)
 
     # evaluation 2 -- track the change of total asset
-    all_asset = evaluate_performance_asset(price_val, dps_val, ts3len, time_window, t=0.001, step=time_window)
+    all_asset = evaluate_performance_asset(price_val, dps_val, ts3len, time_window, t=0.0001, step=time_window)
     plt.plot(all_asset/10.0)
     plt.plot(collapse(price_val[ts3len:], time_window))
     plt.title('Total asset')
     plt.show()
     print('Start Asset: %f' % all_asset[0])
     print('Final Asset: %f' % all_asset[-1])
-    print("Weights", w)
+    print "Weights", w
 
 
 if __name__ == '__main__':
     time_intval = 1.0 # basic unit
     time_window = 5 # in time_intval unit
-    npts = 5000
+    npts = 10000  # including nval, and the rest: half to find centers, half to do linear regression
+    nval = 2000
     ts1len, ts2len, ts3len = 20, 60, 120
-    offset = ts3len + 25000
+    offset = ts3len + 20000
     nkmean, ncenter, m_top_discard = 100, 60, 2 # discard top m centers, because these are likely rare
     main()
