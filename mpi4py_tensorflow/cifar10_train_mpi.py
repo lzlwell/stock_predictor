@@ -14,8 +14,6 @@ import cifar10
 
 from mpi4py import MPI
 
-
-
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('train_dir', '../train_shared/test_0_1/',
@@ -102,7 +100,7 @@ else:
                 summary_op = tf.merge_all_summaries()
 
                 # Build an initialization operation to run below.
-                #init = tf.global_variables_initializer()
+                # init = tf.global_variables_initializer()
                 init = tf.initialize_all_variables()
 
                 # Start running operations on the Graph.
@@ -119,7 +117,6 @@ else:
 
                 summary_writer = tf.train.SummaryWriter(save_path, sess.graph)
                 print("set up the model of super class %d" % cid)
-
 
     if rank == 0:
         # parameter sever thread
@@ -172,8 +169,6 @@ else:
     #print('pending: worker %d received message % d from server' % (rank, tag_id))
     shared_centroid_weights = req.wait()
     #print('worker %d received message % d from server' % (rank, tag_id))
-
-
 
         if rank > 0: # local model updates
             # update the model
