@@ -64,3 +64,14 @@ def generate_timeseries(price, ts_len, time_window):
 		ts[i, :ts_len] = price[i:i + ts_len]
 		tsy[i] = price[i + ts_len + time_window -1] - price[i + ts_len - 1]
 	return (ts, tsy)
+
+def generate_timeseries_row(price, ts_len, time_window):
+	m = len(price) - ts_len - time_window + 1;
+
+	# ts= np.zeros((ts_len, m), dtype=float)
+	# tsy = np.zeros(m, dtype=float)
+	ts_tsy = np.zeros((ts_len+1, m), dtype=float);
+	for i in range(m):
+		ts_tsy[:ts_len, i] = price[i :i + ts_len];
+		ts_tsy[ts_len,i] = price[i + ts_len + time_window -1] - price[i + ts_len - 1];
+	return ts_tsy
