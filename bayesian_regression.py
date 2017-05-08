@@ -33,11 +33,11 @@ def find_cluster_centers_row(timeseries, nkmean):
 
         ######
         # Debug
-        #np.random.seed(23);
+        np.random.seed(23);
 
         # timeseries = np.concatenate((ts, np.reshape(tsy, (len(tsy), 1))), axis=1)
         k_means = KMeans(n_clusters=nkmean)
-        # 
+
         # timeseries = (n_samples, n_features)
         k_means.fit(timeseries)
         return k_means.cluster_centers_
