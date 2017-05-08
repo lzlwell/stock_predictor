@@ -4,19 +4,19 @@
 # Running the entire model
 
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from scipy import io
 from sklearn import preprocessing
 from sklearn import linear_model
 from sklearn.cluster import KMeans
-from skimage.feature import hog
+#from skimage.feature import hog
 import math
 import pandas as pd
 
 ######
 # MPI
 from mpi4py import MPI
-from mpi4py.MPI import ANY_SOURCE
+# from mpi4py.MPI import ANY_SOURCE
 
 #####
 from evaluation import *
@@ -24,8 +24,9 @@ from basic_processing import *
 from bayesian_regression import *
 
 comm = MPI.COMM_WORLD
-# rank = comm.Get_rank()
-# size = comm.Get_size()
+
+rank = comm.Get_rank()
+size = comm.Get_size()
 
 def main():
 
@@ -118,10 +119,14 @@ def main():
             stock_temp = io_price(stock_name[istock]);
 
             # price_init is in float64 type, price_init[1:npts]
-            price_init = collapse(stock_temp, time_intval)[stock_offset[istock]:stock_offset[istock]+npts]
+            price_init = collapse(stock_temp, time_intval)[stock_offset[istock]:stock_offset[istock]+npts+smooth_window]
 
             ######
-            # Divide prices into two, roughly equal sized, periods:
+            # smooth price [0:npts]
+            price_init = smooth_price(price_init, smooth_window)
+
+            ######
+            # price for training
             price_global[istock,0:npts-nval] = price_init[0:npts-nval];
 
             # print("price_global[0:5] = ", price_global[istock,0:5]);
@@ -134,6 +139,7 @@ def main():
         # print("price_val_global[0:5] = ", price_val_global[0:5]);
         # Now we simply broadcast the total input data to all the proc  
     else:
+        
         price_global = np.zeros([nstock,npts-nval],dtype="float64");
         price_val_global = np.zeros([nval+tslen[-1]],dtype="float64");
 
@@ -170,6 +176,7 @@ def main():
     ######
     # Need debug here
     s_list_temp = np.zeros((nstock*nslice,ncenter,np.max(tslen)+1),dtype='float64');
+
     s_list = np.zeros((nstock*nslice,ncenter,np.max(tslen+1)),dtype='float64');
     
     for iss in np.arange(ss_start_proc, ss_end_proc):
@@ -186,18 +193,27 @@ def main():
         
         ######
         # centers1[0:n_clusters-1, 0:n_features-1]
-        centers = find_cluster_centers_row(ts_tsy, nkmean);
+        # Tc1 = MPI.Wtime();
+
+        ######
+        # centers = find_cluster_centers_row(ts_tsy, nkmean);
+        k_means = KMeans(n_clusters=nkmean)
+        k_means.fit(ts_tsy);
+        centers = k_means.cluster_centers_
+
+        # Tc2 = MPI.Wtime();
+
+        # print("iss = ", iss, "Time[ find_centers ] : ", Tc2 - Tc1);
 
         # print("proc = ", comm.rank, "istock = ", istock, "islice = ", islice, "itslen = ", itslen, "centers[0,0] = ", centers[0,0]);
         
-        ######
+        # ######
         s_list_temp[iss, 0:ncenter, 0:itslen+1] = choose_effective_centers(centers, ncenter, m_top_discard);
 
         # print("proc = ", comm.rank, "istock = ", istock, "islice = ", islice, "itslen = ", itslen, "s_list[0,0] = ", s_list[islice,0,0]);
 
     if comm.rank == 0:
         T3a = MPI.Wtime();
-
         
     ######
     comm.Allreduce([s_list_temp, MPI.DOUBLE], [s_list, MPI.DOUBLE], op = MPI.SUM);
@@ -214,8 +230,7 @@ def main():
     if comm.rank == 0:
         T3 = MPI.Wtime();
         print("Time[ Find centers ] : ", T3 - T2);
-
-    # #exit(0)
+        print("=======================");
 
     ######
     # [Parallelized]
@@ -227,7 +242,7 @@ def main():
     # w will be broadcast to every proc
     w = linear_regression_vars_find_w(price_global[0,price_len//2:], s_list, tslen, nstock, nslice, time_window)
 
-    comm.Barrier();
+    # comm.Barrier();
     
     if comm.rank == 0:
         T4 = MPI.Wtime();
@@ -248,20 +263,18 @@ def main():
     if comm.rank == 0:
         dprice = diff_price(price_val_global);
         ######
-        # ????
-        # Why 20?
-        ######
         mdprice = mean_price(dprice, 20);
-        plt.plot(pprice_val);
-        #    plt.plot(dprice)
-        #plt.plot(mdprice)
-        plt.plot(price_val_global);
-        plt.show();
+        
+        # plt.plot(pprice_val);
 
-        plt.plot(dprice[tslen[-1]+time_window:]);
-        plt.plot(dps_val);
-        plt.show();
+        # plt.plot(price_val_global);
+        # plt.show();
 
+        # plt.plot(dprice[tslen[-1]+time_window:]);
+        # plt.plot(dps_val);
+        # plt.show();
+
+        ######
         # evaluation 1 -- original
         #    bank_balance = evaluate_performance(price, dps, tslen[-1], time_window, t=0.001, step=1)
         #    print("Final Balance:", bank_balance)
@@ -269,10 +282,11 @@ def main():
         # evaluation 2 -- track the change of total asset
         all_asset = evaluate_performance_asset(price_val_global, dps_val, tslen[-1], time_window, t=0.0001, step=time_window);
 
-        plt.plot(all_asset/10.0);
-        plt.plot(collapse(price_val_global[tslen[-1]:], time_window));
-        plt.title('Total asset');
-        plt.show();
+        # plt.plot(all_asset/10.0);
+        # plt.plot(collapse(price_val_global[tslen[-1]:], time_window));
+        # plt.title('Total asset');
+        # plt.show();
+    if comm.rank == 0:
         print('Start Asset: %f' % all_asset[0])
         print('Final Asset: %f' % all_asset[-1])
         # print("Weights", w)
@@ -289,22 +303,24 @@ if __name__ == '__main__':
     time_window = 5; # in time_intval unit
 
     npts = 20000;  # including nval, and the rest: half to find centers, half to do linear regression
-    nval = 4000;
+    nval = 2000;
 
     # ts1len, ts2len, ts3len = 20, 60, 120;
+
+    smooth_window = time_window;
 
     nstock = 5;
 
     stock_name=["AAPL","GOOG","FB","AMZN","IBM"];
 
-    tslen = np.array([20, 60, 120, 240, 360]);
+    tslen = np.array([3,5,10,20,30,40,50,60]);
     nslice = len(tslen);
 
     offset = tslen[-1] + 25000;
     # stock_offset = np.array([offset,offset-tslen[-1],offset,offset,offset]); 
     stock_offset = np.array([offset,offset,offset,offset,offset]);
    
-    nkmean, ncenter, m_top_discard = 100, 60, 2 # discard top m centers, because these are likely rare
+    nkmean, ncenter, m_top_discard = 100, 60, 1 # discard top m centers, because these are likely rare
 
     ######
     # TODO

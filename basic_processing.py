@@ -16,13 +16,19 @@ from scipy import io
 import math
 
 def io_price(symbol):
-	df = pd.read_csv("data/{}.csv".format(symbol))
+	df = pd.read_csv("./data/{}.csv".format(symbol))
 	return np.array(df['Close'])
 
 def diff_price(price):
 	dprice = np.zeros(len(price)-1, dtype=float)
 	dprice[:] = price[1:] - price[:-1]
 	return dprice
+
+def smooth_price(price, window):
+        newprice = np.zeros(len(price)-window, dtype=float)
+        for i in range(len(price)-window):
+                newprice[i] = np.mean(price[i:i+window])
+        return newprice
 
 def inv_diff_price(dprice, price0):
 	price = np.zeros(len(dprice)+1, dtype=float)
